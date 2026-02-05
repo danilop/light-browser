@@ -14,7 +14,9 @@ A lightweight web browser designed for **humans** (CLI/TUI) and **AI agents** (M
 
 ## Installation
 
-### Option 1: One-Line Install (requires Bun)
+### Option 1: One-Line Install (recommended)
+
+Requires [Bun](https://bun.sh) - install with `curl -fsSL https://bun.sh/install | bash`
 
 ```bash
 # Run directly without installing (downloads on first use)
@@ -246,11 +248,9 @@ Light Browser provides a **Model Context Protocol (MCP) server** for AI agent in
 
 ## Setup
 
+Requires [Bun](https://bun.sh) - install with `curl -fsSL https://bun.sh/install | bash`
+
 Add to your MCP client configuration (e.g., `~/.config/claude/claude_desktop_config.json`):
-
-### Option A: Using bunx (Simplest - requires Bun)
-
-No installation or cloning needed. Downloads automatically on first use:
 
 ```json
 {
@@ -263,24 +263,12 @@ No installation or cloning needed. Downloads automatically on first use:
 }
 ```
 
-### Option B: Using Global Install (requires Bun)
+That's it! No cloning, no manual install. Downloads automatically on first use.
 
-After running `bun add -g github:danilop/light-browser`:
+<details>
+<summary>Alternative: Using compiled binary (no Bun needed)</summary>
 
-```json
-{
-  "mcpServers": {
-    "light-browser": {
-      "command": "light-browser",
-      "args": ["serve"]
-    }
-  }
-}
-```
-
-### Option C: Using Compiled Binary (no Bun needed)
-
-After downloading the binary for your platform:
+Download from [Releases](https://github.com/danilop/light-browser/releases), then:
 
 ```json
 {
@@ -292,6 +280,7 @@ After downloading the binary for your platform:
   }
 }
 ```
+</details>
 
 ## MCP Tools
 
