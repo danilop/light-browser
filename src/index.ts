@@ -32,7 +32,7 @@ import { formatAsText } from './output/text.ts';
 import { formatAsJson } from './output/json.ts';
 import { BrowserError } from './utils/errors.ts';
 import { processAllMedia, getMediaSummary, type ProcessedMedia } from './utils/media-proc.ts';
-import { filterByQuery, getModelInfo } from './extraction/semantic.ts';
+import { filterHtmlByQuery, getModelInfo } from './extraction/semantic.ts';
 import { truncate, type TruncationResult } from './utils/tokens.ts';
 import { extractFromPdfUrl, isPdfUrl, formatPdfMetadata } from './extraction/pdf.ts';
 import { processBatch, readUrlsFromFile, writeBatchResults } from './utils/batch.ts';
@@ -285,7 +285,7 @@ program
       const extractEndTime = performance.now();
 
       // Apply semantic search filtering if --query is provided
-      let semanticResults: Awaited<ReturnType<typeof filterByQuery>> | null = null;
+      let semanticResults: Awaited<ReturnType<typeof filterHtmlByQuery>> | null = null;
       let semanticSearchTime = 0;
 
       if (options.query) {
@@ -295,16 +295,10 @@ program
           console.error(`Semantic search (${status}): "${options.query}"`);
         }
 
-        // For semantic search, always use structured content (JSON format)
-        // This ensures proper paragraph chunking regardless of output format
-        const structuredContent =
-          typeof extracted.content === 'string'
-            ? extractFromHtml(result.html, result.url, { ...extractionOptions, format: 'json' })
-                .content
-            : extracted.content;
-
+        // Use raw HTML for semantic search - extracts ALL visible text
+        // regardless of HTML structure (tables, divs, links, etc.)
         const semanticStartTime = performance.now();
-        semanticResults = await filterByQuery(structuredContent, options.query, {
+        semanticResults = await filterHtmlByQuery(result.html, options.query, {
           topK: parseInt(options.semanticTopK || '10', 10),
           threshold: parseFloat(options.semanticThreshold || '0.3'),
         });

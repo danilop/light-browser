@@ -9,9 +9,11 @@
  * - ~23MB model size
  * - 384-dimension embeddings
  * - ~50-100ms per embedding
+ * - Extracts ALL visible text from any HTML structure
  */
 
 import { pipeline, env } from '@xenova/transformers';
+import { convert } from 'html-to-text';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -241,6 +243,79 @@ export function extractChunksFromText(text: string): ContentChunk[] {
 }
 
 /**
+ * Extract ALL visible text from HTML regardless of tag structure.
+ * Uses html-to-text to properly handle tables, divs, links, etc.
+ * This works with any HTML structure, not just semantic HTML.
+ */
+export function extractAllTextFromHtml(html: string): string {
+  return convert(html, {
+    wordwrap: false,
+    preserveNewlines: false,
+    selectors: [
+      // Remove scripts, styles, hidden elements
+      { selector: 'script', format: 'skip' },
+      { selector: 'style', format: 'skip' },
+      { selector: 'noscript', format: 'skip' },
+      { selector: '[hidden]', format: 'skip' },
+      { selector: '[aria-hidden="true"]', format: 'skip' },
+      // Keep links as text
+      { selector: 'a', options: { ignoreHref: true } },
+      // Format images as alt text
+      { selector: 'img', format: 'skip' },
+      // Tables - extract cell content
+      { selector: 'table', format: 'dataTable' },
+    ],
+  });
+}
+
+/**
+ * Extract text chunks from HTML - works with ANY HTML structure.
+ * This is the preferred method for semantic search as it captures
+ * all visible text regardless of semantic HTML usage.
+ */
+export function extractChunksFromHtml(html: string): ContentChunk[] {
+  const text = extractAllTextFromHtml(html);
+
+  // Split by newlines and filter out short/empty lines
+  const lines = text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 10);
+
+  // Group adjacent short lines into chunks, keep long lines separate
+  const chunks: ContentChunk[] = [];
+  let currentChunk = '';
+  let index = 0;
+
+  for (const line of lines) {
+    // If line is long enough to be its own chunk
+    if (line.length > 50) {
+      // Save any accumulated chunk first
+      if (currentChunk.length > 10) {
+        chunks.push({ text: currentChunk.trim(), index: index++, type: 'text' });
+        currentChunk = '';
+      }
+      chunks.push({ text: line, index: index++, type: 'text' });
+    } else {
+      // Accumulate short lines
+      currentChunk += (currentChunk ? ' ' : '') + line;
+      // If accumulated chunk is big enough, save it
+      if (currentChunk.length > 100) {
+        chunks.push({ text: currentChunk.trim(), index: index++, type: 'text' });
+        currentChunk = '';
+      }
+    }
+  }
+
+  // Don't forget the last chunk
+  if (currentChunk.length > 10) {
+    chunks.push({ text: currentChunk.trim(), index: index++, type: 'text' });
+  }
+
+  return chunks;
+}
+
+/**
  * Filter content by semantic search query
  * Returns only the chunks that match the query
  */
@@ -264,6 +339,50 @@ export async function filterByQuery(
   if (chunks.length === 0) {
     return {
       filteredContent: typeof content === 'string' ? content : '',
+      results: [],
+      totalChunks: 0,
+      matchedChunks: 0,
+    };
+  }
+
+  // Perform semantic search
+  const results = await semanticSearch(query, chunks, options);
+
+  // Reconstruct filtered content
+  const filteredContent = results.map((r) => r.chunk.text).join('\n\n');
+
+  return {
+    filteredContent,
+    results,
+    totalChunks: chunks.length,
+    matchedChunks: results.length,
+  };
+}
+
+/**
+ * Filter HTML content by semantic search query.
+ * This is the preferred method as it extracts ALL visible text
+ * regardless of HTML structure (tables, divs, links, etc.)
+ */
+export async function filterHtmlByQuery(
+  html: string,
+  query: string,
+  options?: {
+    topK?: number;
+    threshold?: number;
+  }
+): Promise<{
+  filteredContent: string;
+  results: SemanticSearchResult[];
+  totalChunks: number;
+  matchedChunks: number;
+}> {
+  // Extract ALL visible text chunks from HTML
+  const chunks = extractChunksFromHtml(html);
+
+  if (chunks.length === 0) {
+    return {
+      filteredContent: '',
       results: [],
       totalChunks: 0,
       matchedChunks: 0,
