@@ -476,7 +476,7 @@ Light Browser extracts ALL visible text from any HTML structure, regardless of s
 # Install dependencies
 bun install
 
-# Run tests (180 tests)
+# Run tests (172 tests)
 bun test
 
 # Type check

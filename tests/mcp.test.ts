@@ -55,6 +55,66 @@ afterAll(async () => {
   stopTestServer();
 });
 
+/**
+ * Count words in a string
+ */
+function countWords(text: string): number {
+  if (!text) return 0;
+  return text
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 0).length;
+}
+
+/**
+ * Count all words in tool descriptions (tool-level + property-level)
+ */
+function countToolDocumentationWords(
+  tools: {
+    name: string;
+    description?: string;
+    inputSchema?: { properties?: Record<string, { description?: string }> };
+  }[]
+): {
+  total: number;
+  byTool: Record<string, number>;
+  toolDescriptions: number;
+  propertyDescriptions: number;
+} {
+  let total = 0;
+  let toolDescriptions = 0;
+  let propertyDescriptions = 0;
+  const byTool: Record<string, number> = {};
+
+  for (const tool of tools) {
+    let toolWords = 0;
+
+    // Count tool description
+    if (tool.description) {
+      const words = countWords(tool.description);
+      toolWords += words;
+      toolDescriptions += words;
+    }
+
+    // Count property descriptions
+    const props = tool.inputSchema?.properties;
+    if (props) {
+      for (const prop of Object.values(props)) {
+        if (prop.description) {
+          const words = countWords(prop.description);
+          toolWords += words;
+          propertyDescriptions += words;
+        }
+      }
+    }
+
+    byTool[tool.name] = toolWords;
+    total += toolWords;
+  }
+
+  return { total, byTool, toolDescriptions, propertyDescriptions };
+}
+
 describe('MCP Client-Server Tests', () => {
   describe('Tool Discovery', () => {
     test('lists all available tools', async () => {
@@ -73,6 +133,34 @@ describe('MCP Client-Server Tests', () => {
       expect(toolNames).toContain('click_link');
       expect(toolNames).toContain('session_list');
       expect(toolNames).toContain('session_close');
+    });
+
+    test('reports tool documentation word count', async () => {
+      const result = await mcpClient.listTools();
+      const stats = countToolDocumentationWords(result.tools);
+
+      // Log the documentation stats for visibility
+      console.log('\n=== MCP Tool Documentation Stats ===');
+      console.log(`Total tools: ${result.tools.length}`);
+      console.log(`Total words: ${stats.total}`);
+      console.log(`  - Tool descriptions: ${stats.toolDescriptions} words`);
+      console.log(`  - Property descriptions: ${stats.propertyDescriptions} words`);
+      console.log('\nWords by tool:');
+      for (const [name, words] of Object.entries(stats.byTool).sort((a, b) => b[1] - a[1])) {
+        console.log(`  ${name}: ${words} words`);
+      }
+      console.log('====================================\n');
+
+      // Assert reasonable documentation size
+      // Total should be meaningful but not excessive (balance between clarity and token usage)
+      expect(stats.total).toBeGreaterThan(50); // At least some documentation
+      expect(stats.total).toBeLessThan(1000); // Not excessive for AI context
+
+      // Every tool should have at least a description
+      for (const tool of result.tools) {
+        expect(tool.description).toBeDefined();
+        expect(tool.description!.length).toBeGreaterThan(10);
+      }
     });
   });
 
