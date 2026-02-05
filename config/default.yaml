@@ -1,0 +1,58 @@
+# Light Browser - Default Configuration
+# Copy to ~/.config/light-browser/config.yaml to customize
+
+# Browser settings
+browser:
+  headless: true
+  javascript: true
+  timeout: 30000  # 30 seconds
+  viewport:
+    width: 1280
+    height: 720
+
+# Media settings
+media:
+  images:
+    enabled: true
+    maxWidth: 640
+    maxHeight: 480
+    format: webp
+    quality: 80
+  video:
+    enabled: true
+    extractFrames: 5
+    frameInterval: auto  # or seconds
+
+# Output settings
+output:
+  defaultFormat: markdown
+  includeMetadata: true
+  linkStyle: numbered  # or inline
+
+# Extraction settings
+extraction:
+  readabilityMode: false
+  stripNavigation: true
+  stripFooters: false
+
+# Privacy settings
+privacy:
+  respectRobotsTxt: true
+  trackingProtection: false
+  sendDNT: false
+
+# Network settings
+network:
+  retries: 2
+  followRedirects: true
+  maxRedirects: 10
+
+# Session settings
+session:
+  persistCookies: false
+  cookieMode: all  # all, session, none
+
+# Anti-bot settings
+antibot:
+  mode: honest  # honest, stealth, custom
+  userAgent: null  # null = honest identification

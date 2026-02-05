@@ -1,0 +1,8 @@
+# Run lint-staged for formatting and linting
+bunx lint-staged
+
+# Run type checking
+bun run typecheck
+
+# Run dead code detection (warning only, don't block commit)
+bun run deadcode || echo "Warning: Dead code detected (not blocking commit)"

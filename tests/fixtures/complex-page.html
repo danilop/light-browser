@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complex Test Page</title>
+  <meta name="description" content="A complex page for testing extraction">
+  <meta name="keywords" content="test, html, extraction">
+  <meta property="og:title" content="OG Test Title">
+  <meta property="og:description" content="OG description for sharing">
+  <link rel="canonical" href="https://example.com/complex-page">
+</head>
+<body>
+  <header>
+    <nav role="navigation">
+      <a href="/">Home</a>
+      <a href="/about">About</a>
+      <a href="/products">Products</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <article>
+      <h1>Main Article Title</h1>
+      <p class="intro">This is the introduction paragraph with some <strong>bold text</strong> and <em>italic text</em>.</p>
+
+      <h2>Section One</h2>
+      <p>Here is a paragraph with a <a href="https://external.com/page">link to an external site</a> and another <a href="/internal/page">internal link</a>.</p>
+
+      <blockquote>
+        This is a blockquote with important information.
+      </blockquote>
+
+      <h3>Subsection with List</h3>
+      <ul>
+        <li>First item in unordered list</li>
+        <li>Second item with <a href="https://list-link.com">a link</a></li>
+        <li>Third item</li>
+      </ul>
+
+      <h3>Ordered List</h3>
+      <ol>
+        <li>Step one</li>
+        <li>Step two</li>
+        <li>Step three</li>
+      </ol>
+
+      <h2>Section Two with Table</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Product A</td>
+            <td>$10.00</td>
+            <td>5</td>
+          </tr>
+          <tr>
+            <td>Product B</td>
+            <td>$25.00</td>
+            <td>3</td>
+          </tr>
+          <tr>
+            <td>Product C</td>
+            <td>$15.00</td>
+            <td>10</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Section with Code</h2>
+      <pre><code class="language-javascript">
+function hello() {
+  console.log("Hello, world!");
+  return true;
+}
+      </code></pre>
+
+      <h2>Media Section</h2>
+      <figure>
+        <img src="images/photo.jpg" alt="A beautiful photo" width="800" height="600">
+        <figcaption>Caption for the photo</figcaption>
+      </figure>
+
+      <video src="video/demo.mp4" width="1280" height="720" poster="video/poster.jpg">
+        Your browser does not support video.
+      </video>
+
+      <audio src="audio/sample.mp3">
+        Your browser does not support audio.
+      </audio>
+    </article>
+
+    <aside>
+      <h4>Related Articles</h4>
+      <ul>
+        <li><a href="/related/1">Related Article 1</a></li>
+        <li><a href="/related/2">Related Article 2</a></li>
+      </ul>
+    </aside>
+  </main>
+
+  <section id="contact-form">
+    <h2>Contact Us</h2>
+    <form action="/api/contact" method="POST" id="contact">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="field">
+        <label for="subject">Subject</label>
+        <select id="subject" name="subject">
+          <option value="general">General Inquiry</option>
+          <option value="support">Support</option>
+          <option value="sales" selected>Sales</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="message">Message</label>
+        <textarea id="message" name="message" rows="5"></textarea>
+      </div>
+      <div class="field">
+        <label>
+          <input type="checkbox" name="newsletter" value="yes"> Subscribe to newsletter
+        </label>
+      </div>
+      <div class="field">
+        <input type="hidden" name="_token" value="abc123">
+        <button type="submit">Send Message</button>
+      </div>
+    </form>
+  </section>
+
+  <footer role="contentinfo">
+    <p>&copy; 2025 Test Company. All rights reserved.</p>
+    <nav>
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="https://twitter.com/test" rel="noopener">Twitter</a>
+    </nav>
+  </footer>
+
+  <script>
+    // This should be stripped
+    console.log("Script content");
+  </script>
+</body>
+</html>

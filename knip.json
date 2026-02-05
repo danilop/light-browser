@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "project": ["src/**/*.ts"],
+  "ignore": ["src/core/types.ts", "src/interaction/index.ts"],
+  "ignoreDependencies": ["@types/*"],
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "unlisted": "warn",
+    "exports": "warn",
+    "binaries": "warn"
+  }
+}
