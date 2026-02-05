@@ -501,6 +501,28 @@ bun run build:all
 # → dist/light-browser-windows-x64.exe
 ```
 
+## Releasing
+
+Releases are automated via GitHub Actions. To create a new release:
+
+```bash
+# 1. Update version in package.json
+# 2. Commit the version bump
+git add package.json
+git commit -m "Bump version to X.Y.Z"
+
+# 3. Create and push a version tag
+git tag vX.Y.Z
+git push origin main --tags
+```
+
+This triggers the release workflow which:
+1. Builds binaries for all platforms (macOS, Linux, Windows)
+2. Creates a GitHub Release with the binaries attached
+3. Auto-generates release notes from commits
+
+**Version format**: Use semantic versioning (e.g., `v0.2.0`, `v1.0.0-beta.1`)
+
 ## License
 
 MIT
