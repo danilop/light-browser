@@ -246,3 +246,78 @@ describe('Model Info', () => {
     expect(info.loaded).toBe(true);
   });
 });
+
+describe('Integration: Real Website Semantic Search', () => {
+  it('should filter Wikipedia content by semantic query', async () => {
+    // Fetch a Wikipedia page about a well-defined topic
+    const response = await fetch('https://en.wikipedia.org/wiki/Machine_learning');
+    const html = await response.text();
+
+    // Extract structured content using our extractor
+    const { extractFromHtml } = await import('../src/extraction/html.ts');
+    const extracted = extractFromHtml(html, 'https://en.wikipedia.org/wiki/Machine_learning', {
+      format: 'json',
+    });
+
+    // Verify we have enough content to search
+    expect(Array.isArray(extracted.content)).toBe(true);
+    expect(extracted.content.length).toBeGreaterThan(50);
+
+    // Search for neural network related content
+    const result = await filterByQuery(extracted.content, 'neural networks deep learning', {
+      topK: 5,
+      threshold: 0.25,
+    });
+
+    // Should find relevant chunks
+    expect(result.totalChunks).toBeGreaterThan(50);
+    expect(result.matchedChunks).toBeGreaterThan(0);
+    expect(result.matchedChunks).toBeLessThanOrEqual(5);
+
+    // Filtered content should mention relevant terms
+    const lowerContent = result.filteredContent.toLowerCase();
+    expect(lowerContent).toMatch(/neural|network|deep|learning|algorithm/);
+  }, 60000);
+
+  it('should return different results for different queries on same page', async () => {
+    // Use a simple test page with distinct topics
+    const html = `
+      <html><body>
+        <h1>Technology Guide</h1>
+        <p>Cloud computing enables scalable infrastructure and on-demand resources for businesses.</p>
+        <p>Security measures include encryption, firewalls, and access control policies.</p>
+        <p>Machine learning algorithms can process large datasets efficiently.</p>
+        <p>Mobile applications provide user-friendly interfaces for consumers.</p>
+        <p>Database systems store and retrieve information reliably.</p>
+      </body></html>
+    `;
+
+    const { extractFromHtml } = await import('../src/extraction/html.ts');
+    const extracted = extractFromHtml(html, 'http://test.com', { format: 'json' });
+
+    // Search for security-related content
+    const securityResult = await filterByQuery(extracted.content, 'cybersecurity protection', {
+      topK: 2,
+      threshold: 0.2,
+    });
+
+    // Search for cloud-related content
+    const cloudResult = await filterByQuery(extracted.content, 'cloud infrastructure servers', {
+      topK: 2,
+      threshold: 0.2,
+    });
+
+    // Both should find matches
+    expect(securityResult.matchedChunks).toBeGreaterThan(0);
+    expect(cloudResult.matchedChunks).toBeGreaterThan(0);
+
+    // Results should be different
+    expect(securityResult.filteredContent).not.toBe(cloudResult.filteredContent);
+
+    // Security result should contain security-related terms
+    expect(securityResult.filteredContent.toLowerCase()).toMatch(/security|encryption|firewall/);
+
+    // Cloud result should contain cloud-related terms
+    expect(cloudResult.filteredContent.toLowerCase()).toMatch(/cloud|infrastructure|scalable/);
+  }, 60000);
+});

@@ -295,8 +295,16 @@ program
           console.error(`Semantic search (${status}): "${options.query}"`);
         }
 
+        // For semantic search, always use structured content (JSON format)
+        // This ensures proper paragraph chunking regardless of output format
+        const structuredContent =
+          typeof extracted.content === 'string'
+            ? extractFromHtml(result.html, result.url, { ...extractionOptions, format: 'json' })
+                .content
+            : extracted.content;
+
         const semanticStartTime = performance.now();
-        semanticResults = await filterByQuery(extracted.content, options.query, {
+        semanticResults = await filterByQuery(structuredContent, options.query, {
           topK: parseInt(options.semanticTopK || '10', 10),
           threshold: parseFloat(options.semanticThreshold || '0.3'),
         });
