@@ -16,13 +16,13 @@ jobs:
           - os: macos-latest
             target: bun-darwin-arm64
             artifact: light-browser-darwin-arm64
-          - os: macos-15
+          - os: macos-latest
             target: bun-darwin-x64
             artifact: light-browser-darwin-x64
           - os: ubuntu-latest
             target: bun-linux-x64
             artifact: light-browser-linux-x64
-          - os: ubuntu-24.04-arm
+          - os: ubuntu-latest
             target: bun-linux-arm64
             artifact: light-browser-linux-arm64
           - os: windows-latest
