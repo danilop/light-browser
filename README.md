@@ -60,14 +60,17 @@ bun run src/index.ts https://example.com
 ## Quick Start
 
 ```bash
-# CLI: Fetch a page as markdown
+# Interactive: Opens TUI automatically when in terminal
 light-browser https://example.com
 
-# CLI: Semantic search - find content about pricing
-light-browser https://store.com --query "how much does it cost"
+# Pipe/Script: Output markdown to stdout
+light-browser https://example.com --dump
 
-# TUI: Interactive terminal browser
-light-browser tui https://example.com
+# Semantic search - find content about pricing
+light-browser https://example.com --dump --query "how much does it cost"
+
+# JSON output for scripts
+light-browser https://example.com --json
 
 # MCP: Start server for AI agents
 light-browser serve
@@ -201,6 +204,7 @@ Options:
   --max-tokens <n>              Token budget limit
   -q, --quiet                   Suppress status messages
   -v, --verbose                 Show timing details
+  --dump                        Force non-interactive output (for scripts/pipes)
   --download-media              Process images/videos
   --image-size <WxH>            Max image dimensions (default: 640x480)
   --image-quality <n>           Image quality 1-100 (default: 80)
@@ -212,38 +216,60 @@ Options:
   --json                        Shorthand for --format json
 
 Commands:
-  tui [url]                     Interactive terminal UI
   serve                         Start MCP server
 ```
 
-## TUI (Terminal User Interface)
+## Interactive Browser (TUI)
+
+When stdout is a terminal, Light Browser opens an interactive w3m/lynx-style browser by default:
 
 ```bash
-light-browser tui https://example.com
+# Opens interactive browser automatically
+light-browser https://example.com
+
+# Force non-interactive output
+light-browser https://example.com --dump
+echo "https://example.com" | light-browser
 ```
 
 ### Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
+| `Tab` | Next focusable element (link/input/button) |
+| `Shift+Tab` | Previous focusable element |
+| `Enter` | Activate (follow link, edit field, submit) |
 | `j` / `↓` | Scroll down |
 | `k` / `↑` | Scroll up |
 | `d` / `PgDn` | Page down |
 | `u` / `PgUp` | Page up |
 | `g` | Go to top |
 | `G` | Go to bottom |
+| `b` | Go back in history |
+| `f` | Go forward in history |
 | `1-9` | Follow link by number |
 | `/` | Search in page |
-| `n` / `N` | Next/previous result |
+| `n` / `N` | Next/previous search result |
 | `:` | Command mode |
 | `q` | Quit |
+
+### Input Mode (Form Fields)
+
+When you press Enter on an input field:
+- Type your text
+- `Enter` - Save and exit input mode
+- `Escape` - Cancel and exit
+- `Tab` - Save and move to next field
 
 ### Commands
 
 - `:open <url>` - Navigate to URL
 - `:links` - Show all links
 - `:forms` - Show all forms
+- `:back` - Go back
+- `:forward` - Go forward
 - `:refresh` - Reload page
+- `:help` - Show all keyboard shortcuts
 - `:quit` - Exit
 
 ---
@@ -256,7 +282,7 @@ Light Browser provides a **Model Context Protocol (MCP) server** for AI agent in
 
 Requires [Bun](https://bun.sh) - install with `curl -fsSL https://bun.sh/install | bash`
 
-Add to your MCP client configuration (e.g., `~/.config/claude/claude_desktop_config.json`):
+Add to your MCP client configuration:
 
 ```json
 {

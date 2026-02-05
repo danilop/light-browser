@@ -85,7 +85,7 @@ export function getUserAgent(config: Config): string {
   }
 
   if (config.antibot.mode === 'honest') {
-    return `${PRODUCT_NAME}/${VERSION} (https://github.com/anthropics/light-browser)`;
+    return `${PRODUCT_NAME}/${VERSION} (https://github.com/danilop/light-browser)`;
   }
 
   // Stealth mode - use a common browser UA
