@@ -321,14 +321,87 @@ export function extractMetadata($: CheerioAPI): PageMetadata {
 }
 
 /**
+ * Build a map of link hrefs and text to their reference numbers
+ */
+function buildLinkRefMap(links: Link[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const link of links) {
+    // Map by both href and text for reliable matching
+    if (link.refNumber !== undefined) {
+      map.set(link.href, link.refNumber);
+      if (link.text) {
+        map.set(link.text.toLowerCase(), link.refNumber);
+      }
+    }
+  }
+  return map;
+}
+
+/**
+ * Extract text from an element, adding inline link references [n]
+ */
+function getTextWithLinkRefs(
+  $: CheerioAPI,
+  $el: CheerioSelection,
+  linkRefMap: Map<string, number>,
+  mediaRefMap: Map<string, number>
+): string {
+  let result = '';
+
+  $el.contents().each((_, node) => {
+    if (node.type === 'text') {
+      result += $(node).text();
+      return;
+    }
+
+    if (node.type !== 'tag') return;
+
+    const $node = $(node);
+    const tagName = (node as { tagName?: string }).tagName?.toLowerCase();
+
+    if (tagName === 'a') {
+      const href = $node.attr('href') ?? '';
+      const text = $node.text().trim();
+      const refNum = linkRefMap.get(href) || linkRefMap.get(text.toLowerCase());
+      if (refNum) {
+        result += `${text} [${refNum}]`;
+      } else {
+        result += text;
+      }
+    } else if (tagName === 'img') {
+      const src = $node.attr('src') ?? '';
+      const alt = $node.attr('alt') ?? 'image';
+      const refNum = mediaRefMap.get(src);
+      if (refNum) {
+        result += `[${alt}] [img:${refNum}]`;
+      } else {
+        result += `[${alt}]`;
+      }
+    } else {
+      // Recurse into child elements
+      result += getTextWithLinkRefs($, $node, linkRefMap, mediaRefMap);
+    }
+  });
+
+  return result;
+}
+
+/**
  * Extract text content as a structured tree
  */
 export function extractStructuredContent(
   $: CheerioAPI,
   $root: CheerioSelection,
-  options: ExtractionOptions
+  options: ExtractionOptions,
+  links?: Link[],
+  media?: MediaRef[]
 ): StructuredContent[] {
   const content: StructuredContent[] = [];
+  const linkRefMap = links ? buildLinkRefMap(links) : new Map<string, number>();
+  const mediaRefMap = new Map<string, number>();
+  if (media) {
+    media.forEach((m, i) => mediaRefMap.set(m.src, i + 1));
+  }
 
   // Build exclude selector
   let excludeSelector = DEFAULT_EXCLUDE_SELECTORS.join(', ');
@@ -343,7 +416,7 @@ export function extractStructuredContent(
   $root.find('h1, h2, h3, h4, h5, h6').each((_, el) => {
     const $el = $(el);
     const level = parseInt(el.tagName.charAt(1), 10);
-    const text = $el.text().trim();
+    const text = getTextWithLinkRefs($, $el, linkRefMap, mediaRefMap).trim();
     if (text) {
       content.push({ type: 'heading', level, text });
     }
@@ -351,7 +424,7 @@ export function extractStructuredContent(
 
   // Process paragraphs
   $root.find('p').each((_, el) => {
-    const text = $(el).text().trim();
+    const text = getTextWithLinkRefs($, $(el), linkRefMap, mediaRefMap).trim();
     if (text) {
       content.push({ type: 'paragraph', text });
     }
@@ -362,7 +435,7 @@ export function extractStructuredContent(
     const $el = $(el);
     const items: StructuredContent[] = [];
     $el.children('li').each((_, liEl) => {
-      const text = $(liEl).text().trim();
+      const text = getTextWithLinkRefs($, $(liEl), linkRefMap, mediaRefMap).trim();
       if (text) {
         items.push({ type: 'paragraph', text });
       }
@@ -374,7 +447,7 @@ export function extractStructuredContent(
 
   // Process blockquotes
   $root.find('blockquote').each((_, el) => {
-    const text = $(el).text().trim();
+    const text = getTextWithLinkRefs($, $(el), linkRefMap, mediaRefMap).trim();
     if (text) {
       content.push({ type: 'blockquote', text });
     }
@@ -382,7 +455,7 @@ export function extractStructuredContent(
 
   // Process code blocks
   $root.find('pre, code').each((_, el) => {
-    const text = $(el).text().trim();
+    const text = $(el).text().trim(); // Don't add refs to code blocks
     if (text) {
       content.push({ type: 'code', text });
     }
@@ -425,9 +498,14 @@ export function getMainContent(
 }
 
 /**
- * Extract plain text content from HTML
+ * Extract plain text content from HTML with inline link references
  */
-export function extractPlainText($: CheerioAPI, options: ExtractionOptions): string {
+export function extractPlainText(
+  $: CheerioAPI,
+  options: ExtractionOptions,
+  links?: Link[],
+  media?: MediaRef[]
+): string {
   const $main = getMainContent($, {
     stripNavigation: true,
     stripFooters: options.excludeSelectors?.some((s) => FOOTER_SELECTORS.includes(s)),
@@ -435,6 +513,37 @@ export function extractPlainText($: CheerioAPI, options: ExtractionOptions): str
 
   // Remove script and style tags
   $main.find('script, style, noscript').remove();
+
+  // Build reference maps for inline refs
+  const linkRefMap = links ? buildLinkRefMap(links) : new Map<string, number>();
+  const mediaRefMap = new Map<string, number>();
+  if (media) {
+    media.forEach((m, i) => mediaRefMap.set(m.src, i + 1));
+  }
+
+  // Replace <a> tags with text [n] format
+  $main.find('a').each((_, el) => {
+    const $a = $(el);
+    const href = $a.attr('href') ?? '';
+    const text = $a.text().trim();
+    const refNum = linkRefMap.get(href) || linkRefMap.get(text.toLowerCase());
+    if (refNum) {
+      $a.replaceWith(`${text} [${refNum}]`);
+    }
+  });
+
+  // Replace <img> tags with [alt] [img:n] format
+  $main.find('img').each((_, el) => {
+    const $img = $(el);
+    const src = $img.attr('src') ?? '';
+    const alt = $img.attr('alt') ?? 'image';
+    const refNum = mediaRefMap.get(src);
+    if (refNum) {
+      $img.replaceWith(`[${alt}] [img:${refNum}]`);
+    } else {
+      $img.replaceWith(`[${alt}]`);
+    }
+  });
 
   // Get text
   let text = $main.text();
@@ -493,19 +602,23 @@ export function extractFromHtml(
     });
   }
 
+  // Extract links and media first (needed for inline references)
+  const links = extractLinks($, url);
+  const media = options.includeMedia !== false ? extractMedia($, url) : [];
+
   // Extract content based on format
   let content: StructuredContent[] | string;
   if (options.format === 'json') {
-    content = extractStructuredContent($, $root, options);
+    content = extractStructuredContent($, $root, options, links, media);
   } else {
-    content = extractPlainText($, options);
+    content = extractPlainText($, options, links, media);
   }
 
   return {
     content,
-    links: extractLinks($, url),
+    links,
     forms: extractForms($),
-    media: options.includeMedia !== false ? extractMedia($, url) : [],
+    media,
     metadata: extractMetadata($),
   };
 }
