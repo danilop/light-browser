@@ -22,6 +22,9 @@ Requires [Bun](https://bun.sh) - install with `curl -fsSL https://bun.sh/install
 # Run directly without installing (downloads on first use)
 bunx github:danilop/light-browser https://example.com
 
+# Always use latest version from GitHub (add #main)
+bunx github:danilop/light-browser#main https://example.com
+
 # Or install globally
 bun add -g github:danilop/light-browser
 light-browser https://example.com
@@ -257,13 +260,13 @@ Add to your MCP client configuration (e.g., `~/.config/claude/claude_desktop_con
   "mcpServers": {
     "light-browser": {
       "command": "bunx",
-      "args": ["github:danilop/light-browser", "serve"]
+      "args": ["github:danilop/light-browser#main", "serve"]
     }
   }
 }
 ```
 
-That's it! No cloning, no manual install. Downloads automatically on first use.
+That's it! No cloning, no manual install. Downloads automatically on first use. The `#main` suffix ensures you always get the latest version.
 
 <details>
 <summary>Alternative: Using compiled binary (no Bun needed)</summary>
