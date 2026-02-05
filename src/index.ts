@@ -1,14 +1,14 @@
 #!/usr/bin/env bun
 /**
- * Light Browser - CLI Entry Point
+ * Light Browser - Unified CLI Entry Point
  *
  * A lightweight web browser for humans (TUI) and AI agents (MCP).
- * This file handles CLI argument parsing and orchestrates the browser.
  *
  * Usage:
- *   light-browser <url>              - Fetch URL and output markdown
+ *   light-browser <url>              - Fetch URL and output markdown (CLI mode)
  *   light-browser <url> --format json - Output as JSON
- *   light-browser <url> --tier 1     - Force Tier 1 (static) engine
+ *   light-browser tui [url]          - Interactive terminal UI
+ *   light-browser serve              - Start MCP server for AI agents
  */
 
 import { Command } from 'commander';
@@ -532,6 +532,34 @@ program
       }
     } finally {
       await engine.close();
+    }
+  });
+
+// TUI subcommand
+program
+  .command('tui [url]')
+  .description('Start interactive terminal UI')
+  .action(async (url: string | undefined) => {
+    const { startTui } = await import('./tui/app.ts');
+    try {
+      await startTui(url);
+    } catch (error) {
+      console.error('TUI Error:', error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+// MCP server subcommand
+program
+  .command('serve')
+  .description('Start MCP server for AI agents')
+  .action(async () => {
+    const { startMcpServer } = await import('./mcp/server.ts');
+    try {
+      await startMcpServer();
+    } catch (error) {
+      console.error('MCP Server Error:', error instanceof Error ? error.message : String(error));
+      process.exit(1);
     }
   });
 
