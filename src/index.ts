@@ -24,6 +24,7 @@ import {
   type ExtractionOptions,
   type PageSnapshot,
   type MediaRef,
+  type Link,
 } from './core/types.ts';
 import { createEngine } from './core/engine/index.ts';
 import { extractFromHtml } from './extraction/html.ts';
@@ -36,6 +37,36 @@ import { filterHtmlByQuery, getModelInfo } from './extraction/semantic.ts';
 import { truncate, type TruncationResult } from './utils/tokens.ts';
 import { extractFromPdfUrl, isPdfUrl, formatPdfMetadata } from './extraction/pdf.ts';
 import { processBatch, readUrlsFromFile, writeBatchResults } from './utils/batch.ts';
+
+/**
+ * Filter links to only those appearing in the filtered content
+ */
+function filterRelevantLinks(links: Link[], filteredContent: string): Link[] {
+  if (!filteredContent) return [];
+  const contentLower = filteredContent.toLowerCase();
+  return links.filter((link) => {
+    // Check if link text appears in filtered content
+    const linkTextLower = link.text.toLowerCase();
+    return linkTextLower.length > 2 && contentLower.includes(linkTextLower);
+  });
+}
+
+/**
+ * Filter media to only those appearing in/near the filtered content
+ */
+function filterRelevantMedia(media: MediaRef[], filteredContent: string): MediaRef[] {
+  if (!filteredContent) return [];
+  const contentLower = filteredContent.toLowerCase();
+  return media.filter((m) => {
+    // Check if alt text or title appears in filtered content
+    const altLower = (m.alt || '').toLowerCase();
+    const titleLower = (m.title || '').toLowerCase();
+    return (
+      (altLower.length > 2 && contentLower.includes(altLower)) ||
+      (titleLower.length > 2 && contentLower.includes(titleLower))
+    );
+  });
+}
 
 const program = new Command();
 
@@ -338,6 +369,32 @@ program
       // Build snapshot (use filtered content if semantic search was applied)
       let finalContent = semanticResults ? semanticResults.filteredContent : extracted.content;
 
+      // Determine if content was filtered (semantic search or keywords)
+      const contentWasFiltered =
+        semanticResults || (cliOptions.keywords && cliOptions.keywords.length > 0);
+      const filteredContentString =
+        typeof finalContent === 'string'
+          ? finalContent
+          : (finalContent as Array<{ text?: string }>).map((c) => c.text || '').join(' ');
+
+      // Filter links and media to only those relevant to filtered content
+      let finalLinks = extracted.links;
+      let finalMedia: (MediaRef | ProcessedMedia)[] = processedMedia;
+
+      if (contentWasFiltered && filteredContentString) {
+        finalLinks = filterRelevantLinks(extracted.links, filteredContentString);
+        finalMedia = filterRelevantMedia(extracted.media, filteredContentString);
+
+        if (
+          !options.quiet &&
+          (finalLinks.length < extracted.links.length || finalMedia.length < extracted.media.length)
+        ) {
+          console.error(
+            `Filtered: ${finalLinks.length}/${extracted.links.length} links, ${finalMedia.length}/${extracted.media.length} media`
+          );
+        }
+      }
+
       // Apply token budget truncation if specified
       let truncationResult: TruncationResult | null = null;
       if (cliOptions.maxTokens && cliOptions.maxTokens > 0) {
@@ -359,9 +416,9 @@ program
         url: result.url,
         title: result.title,
         content: finalContent,
-        links: extracted.links,
+        links: finalLinks,
         forms: extracted.forms,
-        media: processedMedia,
+        media: finalMedia,
         metadata: extracted.metadata,
         tierUsed: result.tierUsed,
         timing: {
