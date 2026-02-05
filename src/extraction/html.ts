@@ -545,14 +545,22 @@ export function extractPlainText(
     }
   });
 
+  // Add newlines around block elements to preserve structure
+  $main.find('p, div, h1, h2, h3, h4, h5, h6, li, tr, br').each((_, el) => {
+    const $el = $(el);
+    $el.before('\n');
+    $el.after('\n');
+  });
+
   // Get text
   let text = $main.text();
 
-  // Normalize whitespace
+  // Normalize whitespace (preserve paragraph breaks)
   text = text
-    .replace(/\s+/g, ' ')
-    .replace(/\n\s*\n/g, '\n\n')
-    .trim();
+    .split(/\n\s*\n/) // Split on paragraph breaks
+    .map((para) => para.replace(/\s+/g, ' ').trim()) // Normalize each paragraph
+    .filter((para) => para.length > 0) // Remove empty paragraphs
+    .join('\n\n'); // Rejoin with double newlines
 
   // Apply keyword filter if specified
   if (options.keywords && options.keywords.length > 0) {
