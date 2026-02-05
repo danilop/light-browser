@@ -202,6 +202,9 @@ Options:
   -q, --quiet                   Suppress status messages
   -v, --verbose                 Show timing details
   --download-media              Process images/videos
+  --image-size <WxH>            Max image dimensions (default: 640x480)
+  --image-quality <n>           Image quality 1-100 (default: 80)
+  --video-frames <n>            Video frames to extract (default: 5)
   --batch <file>                Process URLs from file
   --batch-output <file>         Write results to file
   --batch-concurrency <n>       Parallel requests (default: 1)
@@ -311,7 +314,20 @@ The simplest way to get web content:
 - `selectors`: Array of CSS selectors
 - `maxTokens`: Limit output size
 - `maxTier`: Maximum engine tier (1-3)
-- `includeMedia`: Include processed images
+- `includeMedia`: Include images in response (default: false)
+
+**When `includeMedia: true`:**
+- Images are downloaded, resized (max 640×480), and converted to WebP
+- Returned as base64-encoded data in the response
+- Response format:
+  ```json
+  {
+    "content": [
+      { "type": "text", "text": "Page content with [img:1] references..." },
+      { "type": "image", "data": "base64...", "mimeType": "image/webp" }
+    ]
+  }
+  ```
 
 ### `navigate` - Create Session
 

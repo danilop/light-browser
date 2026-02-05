@@ -98,6 +98,9 @@ program
   .option('-v, --verbose', 'Show detailed output')
   .option('--download-media', 'Download and process media (images, videos)')
   .option('--media-dir <dir>', 'Directory to save downloaded media')
+  .option('--image-size <WxH>', 'Max image dimensions (default: 640x480)', '640x480')
+  .option('--image-quality <n>', 'Image quality 1-100 (default: 80)', '80')
+  .option('--video-frames <n>', 'Number of video frames to extract (default: 5)', '5')
   .option('--batch <file>', 'Process URLs from file (one per line)')
   .option('--batch-output <file>', 'Write batch results to file')
   .option('--batch-concurrency <n>', 'Concurrent requests for batch mode', '1')
@@ -351,8 +354,28 @@ program
           console.error(`Processing ${extracted.media.length} media files...`);
         }
 
+        // Parse image size (e.g., "800x600")
+        const [imgWidth, imgHeight] = (options.imageSize || '640x480')
+          .split('x')
+          .map((n: string) => parseInt(n, 10));
+
+        // Build custom media config from CLI options
+        const mediaConfig = {
+          ...config.media,
+          images: {
+            ...config.media.images,
+            maxWidth: imgWidth || 640,
+            maxHeight: imgHeight || 480,
+            quality: parseInt(options.imageQuality || '80', 10),
+          },
+          video: {
+            ...config.media.video,
+            extractFrames: parseInt(options.videoFrames || '5', 10),
+          },
+        };
+
         const mediaStartTime = performance.now();
-        processedMedia = await processAllMedia(extracted.media, config.media, {
+        processedMedia = await processAllMedia(extracted.media, mediaConfig, {
           cacheDir: options.mediaDir,
           skipDisabled: true,
         });
